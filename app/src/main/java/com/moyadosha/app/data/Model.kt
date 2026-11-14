@@ -70,25 +70,47 @@ fun allQuestions(kid: Boolean, lang: Lang): List<Question> = when {
     else -> AdultQuestionsEn.en
 }
 
+/** Откуда взят вопрос: основной список (M), набор X20 или X35 и номер в нём (с нуля). */
+private data class Ref(val src: Char, val i: Int)
+
+private fun m(vararg i: Int) = i.map { Ref('M', it) }
+private fun x20(vararg i: Int) = i.map { Ref('A', it) }
+private fun x35(vararg i: Int) = i.map { Ref('B', it) }
+
 /**
- * Вопросы для теста нужной длины: у 20 и 35 — свои отдельные наборы ([ExtraQuestions]),
- * у 50 — основной список с ситуациями для переключателя.
+ * Состав тестов: чем длиннее тест, тем подробнее вопросы.
+ * 20 — общие ключевые признаки, 35 — подробнее, 50 — самые детальные. Вопросы не повторяются.
  */
+private val ADULT_POOLS = mapOf(
+    20 to m(0, 1, 2, 3, 6, 8, 10, 11, 12, 14, 18, 19, 20, 21, 22, 23, 24, 26, 27, 34),
+    35 to m(4, 5, 7, 9, 13, 15, 16, 17, 25, 28, 30, 31, 32, 33, 38, 39) +
+        x20(0, 1, 3, 4, 5, 7, 9, 10, 12, 15, 17, 19) + x35(11, 12, 15, 16, 20, 22, 23),
+    50 to m(29, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49) + x20(2, 6, 8, 11, 13, 14, 16, 18) +
+        x35(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 17, 18, 19, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34),
+)
+
+private val KID_POOLS = mapOf(
+    20 to m(0, 1, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22, 32, 33),
+    35 to m(2, 4, 8, 13, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 34) +
+        x20(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 15, 16, 18) + x35(6, 7, 8, 9, 11),
+    50 to m(35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49) + x20(9, 12, 14, 17, 19) +
+        x35(0, 1, 2, 3, 4, 5, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34),
+)
+
+/** Вопросы для теста нужной длины (с ситуациями для переключателя, где они есть). */
 fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
     val kid = age <= KID_MAX_AGE
     val ru = lang == Lang.RU
-    return when (length) {
-        20 -> if (kid) (if (ru) ExtraQuestions.kid20 else ExtraQuestionsEn.kid20)
-        else (if (ru) ExtraQuestions.adult20 else ExtraQuestionsEn.adult20)
-        35 -> if (kid) (if (ru) ExtraQuestions.kid35 else ExtraQuestionsEn.kid35)
-        else (if (ru) ExtraQuestions.adult35 else ExtraQuestionsEn.adult35)
-        else -> questionsByIndices(age, (0 until 50).toList(), lang)
-    }
-}
-
-fun questionsByIndices(age: Int, indices: List<Int>, lang: Lang): List<Question> {
-    val kid = age <= KID_MAX_AGE
+    val main = allQuestions(kid, lang)
     val situations = Situations.forSet(kid, lang)
-    val all = allQuestions(kid, lang)
-    return indices.map { i -> all[i].copy(alt = situations[i]) }
+    val a = if (kid) (if (ru) ExtraQuestions.kid20 else ExtraQuestionsEn.kid20) else (if (ru) ExtraQuestions.adult20 else ExtraQuestionsEn.adult20)
+    val b = if (kid) (if (ru) ExtraQuestions.kid35 else ExtraQuestionsEn.kid35) else (if (ru) ExtraQuestions.adult35 else ExtraQuestionsEn.adult35)
+    val pool = (if (kid) KID_POOLS else ADULT_POOLS).getValue(if (length in TEST_LENGTHS) length else 50)
+    return pool.map { r ->
+        when (r.src) {
+            'M' -> main[r.i].copy(alt = situations[r.i])
+            'A' -> a[r.i]
+            else -> b[r.i]
+        }
+    }
 }
