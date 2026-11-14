@@ -23,19 +23,6 @@ class HistoryStore(context: Context) {
         prefs.edit().putString(KEY, arr.toString()).apply()
     }
 
-    /** Сколько раз показан каждый из 50 вопросов (отдельно для взрослых и детей). */
-    fun loadUsage(kid: Boolean): IntArray {
-        val str = prefs.getString(usageKey(kid), null) ?: return IntArray(50)
-        val parts = str.split(',').mapNotNull { it.toIntOrNull() }
-        return IntArray(50) { parts.getOrElse(it) { 0 } }
-    }
-
-    fun saveUsage(kid: Boolean, usage: IntArray) {
-        prefs.edit().putString(usageKey(kid), usage.joinToString(",")).apply()
-    }
-
-    private fun usageKey(kid: Boolean) = if (kid) "usage_kid" else "usage_adult"
-
     private fun toJson(r: SavedResult) = JSONObject().apply {
         put("id", r.id)
         put("ts", r.timestamp)

@@ -20,8 +20,7 @@ import com.moyadosha.app.data.VikritiResult
 import com.moyadosha.app.data.VikritiScoring
 import com.moyadosha.app.data.VikritiTexts
 import com.moyadosha.app.data.pureStatements
-import com.moyadosha.app.data.questionsByIndices
-import com.moyadosha.app.data.selectQuestionIndices
+import com.moyadosha.app.data.questionsForLength
 import kotlin.random.Random
 
 enum class Screen { Welcome, Quiz, Result, History }
@@ -90,10 +89,6 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     private val store = HistoryStore(app)
-
-    /** Номера показанных вопросов — чтобы в следующий раз выбрать другие. */
-    private var shownIndices: List<Int> = emptyList()
-    private var shownKid = false
     val history = mutableStateListOf<SavedResult>().apply { addAll(store.load()) }
 
     fun start(newMode: TestMode = mode) {
@@ -101,10 +96,7 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         mode = newMode
         val rnd = Random(System.nanoTime())
         if (newMode == TestMode.PRAKRITI) {
-            val kidSet = a <= KID_MAX_AGE
-            shownIndices = selectQuestionIndices(length, store.loadUsage(kidSet), rnd)
-            shownKid = kidSet
-            val qs = questionsByIndices(a, shownIndices, lang)
+            val qs = questionsForLength(a, length, lang)
             val main = qs.map { it.pureStatements().shuffled(rnd) }
             val alts = qs.map { q -> q.alt?.pureStatements()?.shuffled(rnd) }
             items = qs.mapIndexed { i, q ->
@@ -160,9 +152,6 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         if (mode == TestMode.PRAKRITI) {
-            val usage = store.loadUsage(shownKid)
-            shownIndices.forEach { usage[it]++ }
-            store.saveUsage(shownKid, usage)
             result = Scoring.scoreRatings(ratings.mapIndexed { i, r ->
                 val doshas = if (useAlt[i]) altDoshas[i]!! else prakritiDoshas[i]
                 doshas.zip(r).associate { (d, v) -> d to (v ?: 0) }

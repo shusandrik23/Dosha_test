@@ -63,14 +63,6 @@ const val KID_MAX_AGE = 12
 /** Варианты длины теста. */
 val TEST_LENGTHS = listOf(20, 35, 50)
 
-/**
- * Номера (с нуля) ключевых вопросов для короткого теста из 20.
- * Тест из 35 = первые 35 вопросов списка, из 50 = все.
- * Ключевые 20 всегда входят в первые 35.
- */
-private val ADULT_CORE_20 = setOf(0, 1, 2, 3, 6, 7, 8, 11, 12, 14, 15, 17, 18, 19, 20, 22, 23, 24, 27, 34)
-private val KID_CORE_20 = setOf(0, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 19, 20, 22, 32, 33)
-
 fun allQuestions(kid: Boolean, lang: Lang): List<Question> = when {
     kid && lang == Lang.RU -> KidQuestions.ru
     kid -> KidQuestionsEn.en
@@ -78,32 +70,25 @@ fun allQuestions(kid: Boolean, lang: Lang): List<Question> = when {
     else -> AdultQuestionsEn.en
 }
 
-/** Самый короткий набор (20, 35 или 50), в который входит вопрос с этим номером (с нуля). */
-fun minLengthFor(index: Int, kid: Boolean): Int = when {
-    index in (if (kid) KID_CORE_20 else ADULT_CORE_20) -> 20
-    index < 35 -> 35
-    else -> 50
-}
-
 /**
- * Выбор вопросов для теста из [count]: сначала те, что показывались реже всего
- * ([usage] — сколько раз показан каждый из 50 вопросов), при равенстве — случайно.
- * Возвращает номера вопросов по возрастанию, чтобы сохранялся порядок «тело → характер».
+ * Вопросы для теста нужной длины: у 20 и 35 — свои отдельные наборы ([ExtraQuestions]),
+ * у 50 — основной список с ситуациями для переключателя.
  */
-fun selectQuestionIndices(count: Int, usage: IntArray, rnd: kotlin.random.Random, total: Int = 50): List<Int> =
-    (0 until total).shuffled(rnd).sortedBy { usage.getOrElse(it) { 0 } }.take(count.coerceAtMost(total)).sorted()
+fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
+    val kid = age <= KID_MAX_AGE
+    val ru = lang == Lang.RU
+    return when (length) {
+        20 -> if (kid) (if (ru) ExtraQuestions.kid20 else ExtraQuestionsEn.kid20)
+        else (if (ru) ExtraQuestions.adult20 else ExtraQuestionsEn.adult20)
+        35 -> if (kid) (if (ru) ExtraQuestions.kid35 else ExtraQuestionsEn.kid35)
+        else (if (ru) ExtraQuestions.adult35 else ExtraQuestionsEn.adult35)
+        else -> questionsByIndices(age, (0 until 50).toList(), lang)
+    }
+}
 
 fun questionsByIndices(age: Int, indices: List<Int>, lang: Lang): List<Question> {
     val kid = age <= KID_MAX_AGE
     val situations = Situations.forSet(kid, lang)
     val all = allQuestions(kid, lang)
     return indices.map { i -> all[i].copy(alt = situations[i]) }
-}
-
-fun questionsFor(age: Int, count: Int, lang: Lang): List<Question> {
-    val kid = age <= KID_MAX_AGE
-    val situations = Situations.forSet(kid, lang)
-    return allQuestions(kid, lang)
-        .mapIndexed { i, q -> q.copy(alt = situations[i]) }
-        .filterIndexed { i, _ -> minLengthFor(i, kid) <= count }
 }
