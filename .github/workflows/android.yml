@@ -1,10 +1,15 @@
 # Сборка APK Dosha test при каждом обновлении.
-# Готовый файл: Actions → последний запуск «Android APK» → Artifacts → dosha-test-debug.
+# Готовый файл публикуется в Releases → «Dosha test — последняя версия» → dosha-test.apk
+# Прямая ссылка: https://github.com/shusandrik23/Dosha_test/releases/latest/download/dosha-test.apk
 name: Android APK
 
 on:
   push:
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -20,8 +25,23 @@ jobs:
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
 
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk dosha-test.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: dosha-test-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: dosha-test.apk
           retention-days: 30
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Dosha test — последняя версия
+          body: |
+            Последняя сборка приложения Dosha test (коммит ${{ github.sha }}).
+            Скачайте dosha-test.apk ниже и откройте его на телефоне Android.
+            При установке разрешите установку из неизвестных источников.
+          files: dosha-test.apk
+          make_latest: true
