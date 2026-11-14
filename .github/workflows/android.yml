@@ -1,5 +1,5 @@
-# Сборка APK «Моя доша» / "My Dosha" при каждом обновлении.
-# Готовый файл: Actions → последний запуск «Android APK» → Artifacts → my-dosha-debug.
+# Сборка APK Dosha test при каждом обновлении.
+# Готовый файл: Actions → последний запуск «Android APK» → Artifacts → dosha-test-debug.
 name: Android APK
 
 on:
@@ -22,6 +22,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: my-dosha-debug
+          name: dosha-test-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
