@@ -48,7 +48,7 @@ data class Option(val mix: Mix, val text: String)
  * alt — вопрос-ситуация для переключателя «Вопрос / Ситуация» (с теми же баллами).
  * single — вопрос с выбором одного варианта (ответы исключают друг друга): какие варианты
  * показать и в каком порядке. null — обычная шкала «насколько похоже».
- * parts — вопрос из нескольких частей (например, сон: засыпание, чуткость, продолжительность, утро).
+ * parts — вопрос из нескольких частей (сон, волосы): каждая часть — свой параметр.
  * Каждая часть — отдельная шкала на своём экране, а вместе они весят как один вопрос.
  */
 data class Question(
@@ -122,12 +122,12 @@ private val THREE = listOf(Mix.V, Mix.P, Mix.K)
  */
 private val ADULT_SINGLE: Map<Ref, List<Mix>> =
     mapOf(Ref('M', 0) to listOf(Mix.V, Mix.VP, Mix.P, Mix.PK, Mix.K)) + // тест с запястьем
-        listOf(1, 2, 3, 4, 5, 9, 12, 13, 17, 29, 30, 31, 35, 36, 37, 38, 39).associate { Ref('M', it) to SIX } +
+        listOf(1, 2, 4, 5, 9, 12, 13, 17, 29, 30, 31, 35, 36, 37, 38, 39).associate { Ref('M', it) to SIX } +
         listOf(0, 2, 6).associate { Ref('A', it) to THREE } +
         listOf(0, 1, 2, 3, 4, 7).associate { Ref('B', it) to THREE }
 
 private val KID_SINGLE: Map<Ref, List<Mix>> =
-    listOf(0, 4, 10, 11, 12, 13, 27, 30, 34, 35).associate { Ref('M', it) to SIX } +
+    listOf(0, 4, 10, 11, 13, 27, 30, 34, 35).associate { Ref('M', it) to SIX } +
         listOf(0, 1).associate { Ref('A', it) to THREE } +
         listOf(0, 1, 2, 3, 4, 5).associate { Ref('B', it) to THREE }
 
@@ -148,7 +148,7 @@ fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
             'A' -> a[r.i]
             else -> b[r.i]
         }
-        val parts = if (r.src == 'M') SleepParts.forQuestion(kid, lang, r.i) else null
+        val parts = if (r.src == 'M') QuestionParts.forQuestion(kid, lang, r.i) else null
         when {
             order != null -> q.copy(single = order)
             parts != null -> q.copy(parts = parts)

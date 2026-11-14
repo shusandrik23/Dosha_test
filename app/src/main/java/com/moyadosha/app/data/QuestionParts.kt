@@ -1,18 +1,20 @@
 package com.moyadosha.app.data
 
 /**
- * Вопрос о сне, разбитый на части: у каждой части своя шкала «насколько похоже»
+ * Вопросы, разбитые на части (сон, волосы): у каждой части своя шкала «насколько похоже»
  * с утверждениями Ваты, Питты и Капхи. Части вместе весят как один вопрос.
  */
-object SleepParts {
-    /** Номер вопроса о сне в основном списке: у взрослых «Как вы спите?», у детей «Как ты засыпаешь?». */
-    private const val ADULT_INDEX = 14
-    private const val KID_INDEX = 6
+object QuestionParts {
+    /** Номера вопросов в основном списке. */
+    private const val ADULT_SLEEP = 14
+    private const val ADULT_HAIR = 3
+    private const val KID_SLEEP = 6
+    private const val KID_HAIR = 12
 
     private fun part(title: String, vata: String, pitta: String, kapha: String) =
         q(title, Mix.V to vata, Mix.P to pitta, Mix.K to kapha)
 
-    val adultRu = listOf(
+    val sleepAdultRu = listOf(
         part("Засыпание",
             "Засыпаю долго, больше 30 минут: кручусь, в голове крутятся мысли",
             "Засыпаю за 10–15 минут, если не думаю о делах на завтра",
@@ -31,7 +33,7 @@ object SleepParts {
             "Встать тяжело, раскачиваюсь 1–2 часа, нужен кофе или зарядка"),
     )
 
-    val adultEn = listOf(
+    val sleepAdultEn = listOf(
         part("Falling asleep",
             "It takes me over 30 minutes: I toss and turn, thoughts keep spinning",
             "I fall asleep in 10–15 minutes unless I'm thinking about tomorrow's tasks",
@@ -50,7 +52,7 @@ object SleepParts {
             "Getting up is hard, it takes me 1–2 hours to get going, I need coffee or exercise"),
     )
 
-    val kidRu = listOf(
+    val sleepKidRu = listOf(
         part("Засыпание",
             "Засыпаю долго, больше получаса: кручусь, болтаю, зову маму",
             "Засыпаю быстро, минут за 10, если набегался",
@@ -65,7 +67,7 @@ object SleepParts {
             "Сплю дольше других детей, люблю поспать"),
     )
 
-    val kidEn = listOf(
+    val sleepKidEn = listOf(
         part("Falling asleep",
             "It takes me over half an hour: I wriggle, chat and call for mum",
             "I fall asleep quickly, in about 10 minutes, if I've played a lot",
@@ -80,9 +82,82 @@ object SleepParts {
             "I sleep longer than other kids, I love a lie-in"),
     )
 
-    fun forQuestion(kid: Boolean, lang: Lang, index: Int): List<Question>? = when {
-        kid && index == KID_INDEX -> if (lang == Lang.RU) kidRu else kidEn
-        !kid && index == ADULT_INDEX -> if (lang == Lang.RU) adultRu else adultEn
-        else -> null
+    val hairAdultRu = listOf(
+        part("Толщина и густота",
+            "Тонкие и редкие, хвост получается тонким",
+            "Тонкие и мягкие, средней густоты",
+            "Густые и толстые, хвост тяжёлый"),
+        part("Сухость и жирность",
+            "Сухие и тусклые, кончики секутся",
+            "Быстро жирнеют у корней — уже на 1–2 день после мытья",
+            "Блестящие, остаются свежими 3–4 дня"),
+        part("Форма",
+            "Вьются, пушатся, путаются",
+            "Прямые и мягкие, лежат гладко",
+            "Волнистые, тяжёлые, хорошо держат укладку"),
+        part("Цвет, седина и выпадение",
+            "Ломаются и выпадают при стрессе, недосыпе или в холод",
+            "Светлые или рыжеватые; рано седеют (до 30–35 лет) или редеют",
+            "Тёмные, насыщенного цвета, седеют и редеют поздно"),
+    )
+
+    val hairAdultEn = listOf(
+        part("Thickness and density",
+            "Thin and sparse, my ponytail is thin",
+            "Fine and soft, medium density",
+            "Thick and dense, my ponytail is heavy"),
+        part("Dry or oily",
+            "Dry and dull, split ends",
+            "Get oily at the roots quickly — by day 1–2 after washing",
+            "Shiny, stay fresh for 3–4 days"),
+        part("Texture",
+            "Curly or frizzy, tangle easily",
+            "Straight and soft, lie smooth",
+            "Wavy and heavy, hold a style well"),
+        part("Colour, greying and hair loss",
+            "Break and fall out with stress, lack of sleep or cold",
+            "Light or reddish; grey early (before 30–35) or thin out",
+            "Dark, rich colour, grey and thin out late"),
+    )
+
+    val hairKidRu = listOf(
+        part("Густота",
+            "Тонкие и редкие",
+            "Мягкие, средней густоты",
+            "Очень густые и толстые"),
+        part("Форма",
+            "Пушистые, путаются и торчат",
+            "Прямые и мягкие",
+            "Волнистые и тяжёлые"),
+        part("Цвет и блеск",
+            "Тусклые, сухие на кончиках",
+            "Светлые или рыжеватые",
+            "Тёмные и блестящие"),
+    )
+
+    val hairKidEn = listOf(
+        part("Thickness",
+            "Thin and sparse",
+            "Soft, medium thickness",
+            "Very thick and dense"),
+        part("Texture",
+            "Fluffy, tangle and stick out",
+            "Straight and soft",
+            "Wavy and heavy"),
+        part("Colour and shine",
+            "Dull, dry at the ends",
+            "Light or reddish",
+            "Dark and shiny"),
+    )
+
+    fun forQuestion(kid: Boolean, lang: Lang, index: Int): List<Question>? {
+        val ru = lang == Lang.RU
+        return when {
+            kid && index == KID_SLEEP -> if (ru) sleepKidRu else sleepKidEn
+            kid && index == KID_HAIR -> if (ru) hairKidRu else hairKidEn
+            !kid && index == ADULT_SLEEP -> if (ru) sleepAdultRu else sleepAdultEn
+            !kid && index == ADULT_HAIR -> if (ru) hairAdultRu else hairAdultEn
+            else -> null
+        }
     }
 }
