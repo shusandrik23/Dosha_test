@@ -85,6 +85,21 @@ fun minLengthFor(index: Int, kid: Boolean): Int = when {
     else -> 50
 }
 
+/**
+ * Выбор вопросов для теста из [count]: сначала те, что показывались реже всего
+ * ([usage] — сколько раз показан каждый из 50 вопросов), при равенстве — случайно.
+ * Возвращает номера вопросов по возрастанию, чтобы сохранялся порядок «тело → характер».
+ */
+fun selectQuestionIndices(count: Int, usage: IntArray, rnd: kotlin.random.Random, total: Int = 50): List<Int> =
+    (0 until total).shuffled(rnd).sortedBy { usage.getOrElse(it) { 0 } }.take(count.coerceAtMost(total)).sorted()
+
+fun questionsByIndices(age: Int, indices: List<Int>, lang: Lang): List<Question> {
+    val kid = age <= KID_MAX_AGE
+    val situations = Situations.forSet(kid, lang)
+    val all = allQuestions(kid, lang)
+    return indices.map { i -> all[i].copy(alt = situations[i]) }
+}
+
 fun questionsFor(age: Int, count: Int, lang: Lang): List<Question> {
     val kid = age <= KID_MAX_AGE
     val situations = Situations.forSet(kid, lang)
