@@ -99,6 +99,7 @@ The "My nature" test finds the dosha you were born with; the "My balance now" te
     val rateNo = t("Не про меня", "Not me")
     val rateBit = t("Немного", "A little")
     val rateVery = t("Очень похоже", "Very much")
+    val singleHint = t("Выберите один вариант", "Choose one option")
     val scaleHint = t("Отметьте, насколько каждое утверждение похоже на вас", "Mark how much each statement sounds like you")
 
     fun questionOf(i: Int, n: Int) = t("Вопрос $i из $n", "Question $i of $n")

@@ -44,8 +44,20 @@ enum class Mix(val vata: Int, val pitta: Int, val kapha: Int) {
 
 data class Option(val mix: Mix, val text: String)
 
-/** alt — вопрос-ситуация для переключателя «Вопрос / Ситуация» (с теми же баллами). */
-data class Question(val text: String, val options: List<Option>, val alt: Question? = null)
+/**
+ * alt — вопрос-ситуация для переключателя «Вопрос / Ситуация» (с теми же баллами).
+ * single — вопрос с выбором одного варианта (ответы исключают друг друга): какие варианты
+ * показать и в каком порядке. null — обычная шкала «насколько похоже».
+ */
+data class Question(
+    val text: String,
+    val options: List<Option>,
+    val alt: Question? = null,
+    val single: List<Mix>? = null,
+)
+
+/** Варианты для вопроса с выбором одного ответа — в заданном порядке. */
+fun Question.singleOptions(): List<Option> = single.orEmpty().map { m -> options.first { it.mix == m } }
 
 /** Утверждения трёх «чистых» дош для шкалы «насколько похоже» (Вата, Питта, Капха). */
 fun Question.pureStatements(): List<Pair<Dosha, String>> = listOf(
@@ -97,6 +109,25 @@ private val KID_POOLS = mapOf(
         x35(0, 1, 2, 3, 4, 5, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34),
 )
 
+/** Порядок вариантов для вопросов с выбором одного ответа. */
+private val SIX = listOf(Mix.V, Mix.VP, Mix.P, Mix.PK, Mix.K, Mix.VK)
+private val THREE = listOf(Mix.V, Mix.P, Mix.K)
+
+/**
+ * Вопросы о внешних признаках тела: тип у человека один, поэтому выбор одного варианта, а не шкала.
+ * У вопросов основного списка — 6 вариантов (со смешанными), у дополнительных наборов — 3.
+ */
+private val ADULT_SINGLE: Map<Ref, List<Mix>> =
+    mapOf(Ref('M', 0) to listOf(Mix.V, Mix.VP, Mix.P, Mix.PK, Mix.K)) + // тест с запястьем
+        listOf(1, 2, 3, 4, 5, 9, 12, 13, 17, 29, 30, 31, 35, 36, 37, 38, 39).associate { Ref('M', it) to SIX } +
+        listOf(0, 2, 6).associate { Ref('A', it) to THREE } +
+        listOf(0, 1, 2, 3, 4, 7).associate { Ref('B', it) to THREE }
+
+private val KID_SINGLE: Map<Ref, List<Mix>> =
+    listOf(0, 4, 10, 11, 12, 13, 27, 30, 34, 35).associate { Ref('M', it) to SIX } +
+        listOf(0, 1).associate { Ref('A', it) to THREE } +
+        listOf(0, 1, 2, 3, 4, 5).associate { Ref('B', it) to THREE }
+
 /** Вопросы для теста нужной длины (с ситуациями для переключателя, где они есть). */
 fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
     val kid = age <= KID_MAX_AGE
@@ -106,11 +137,14 @@ fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
     val a = if (kid) (if (ru) ExtraQuestions.kid20 else ExtraQuestionsEn.kid20) else (if (ru) ExtraQuestions.adult20 else ExtraQuestionsEn.adult20)
     val b = if (kid) (if (ru) ExtraQuestions.kid35 else ExtraQuestionsEn.kid35) else (if (ru) ExtraQuestions.adult35 else ExtraQuestionsEn.adult35)
     val pool = (if (kid) KID_POOLS else ADULT_POOLS).getValue(if (length in TEST_LENGTHS) length else 50)
+    val single = if (kid) KID_SINGLE else ADULT_SINGLE
     return pool.map { r ->
-        when (r.src) {
-            'M' -> main[r.i].copy(alt = situations[r.i])
+        val order = single[r]
+        val q = when (r.src) {
+            'M' -> main[r.i].copy(alt = situations[r.i]?.copy(single = order))
             'A' -> a[r.i]
             else -> b[r.i]
         }
+        if (order != null) q.copy(single = order) else q
     }
 }

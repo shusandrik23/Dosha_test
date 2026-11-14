@@ -384,13 +384,14 @@ private fun QuizScreen(vm: QuizViewModel) {
                 Text(
                     when {
                         vm.mode == TestMode.VIKRITI -> vm.vtexts.hint(vm.isKid)
+                        question.single -> s.questionHint(vm.isKid) + ". " + s.singleHint
                         else -> s.questionHint(vm.isKid) + ". " + s.scaleHint
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(16.dp))
-                if (vm.mode == TestMode.PRAKRITI) {
+                if (vm.mode == TestMode.PRAKRITI && !question.single) {
                     val r = vm.ratings.getOrElse(i) { listOf(null, null, null) }
                     question.options.forEachIndexed { st, text ->
                         ScaleItem(text, r.getOrNull(st), listOf(s.rateNo, s.rateBit, s.rateVery)) { v ->

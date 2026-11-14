@@ -19,7 +19,9 @@ import com.moyadosha.app.data.VikritiQuestions
 import com.moyadosha.app.data.VikritiResult
 import com.moyadosha.app.data.VikritiScoring
 import com.moyadosha.app.data.VikritiTexts
+import com.moyadosha.app.data.Mix
 import com.moyadosha.app.data.pureStatements
+import com.moyadosha.app.data.singleOptions
 import com.moyadosha.app.data.questionsForLength
 import kotlin.random.Random
 
@@ -29,7 +31,13 @@ enum class Screen { Welcome, Quiz, Result, History }
 enum class TestMode { PRAKRITI, VIKRITI }
 
 /** Вопрос для экрана: текст и варианты, без привязки к типу теста. */
-data class QuizItem(val text: String, val options: List<String>, val alt: QuizItem? = null)
+data class QuizItem(
+    val text: String,
+    val options: List<String>,
+    val alt: QuizItem? = null,
+    /** Выбор одного варианта вместо шкалы. */
+    val single: Boolean = false,
+)
 
 class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** Язык выбирается по языку системы: русский или английский. */
@@ -56,6 +64,8 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** Пракрити: доша каждого из трёх утверждений (в показанном порядке) у вопроса и у ситуации. */
     private var prakritiDoshas: List<List<Dosha>> = emptyList()
     private var altDoshas: List<List<Dosha>?> = emptyList()
+    /** Пракрити: варианты вопросов с выбором одного ответа (null — шкала). */
+    private var singleMixes: List<List<Mix>?> = emptyList()
 
     /** Пракрити: оценки трёх утверждений текущего варианта вопроса (0/1/2 или null). */
     val ratings = mutableStateListOf<List<Int?>>()
@@ -100,8 +110,17 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
             val main = qs.map { it.pureStatements().shuffled(rnd) }
             val alts = qs.map { q -> q.alt?.pureStatements()?.shuffled(rnd) }
             items = qs.mapIndexed { i, q ->
-                QuizItem(q.text, main[i].map { it.second }, q.alt?.let { alt -> QuizItem(alt.text, alts[i]!!.map { it.second }) })
+                if (q.single != null) {
+                    QuizItem(
+                        q.text, q.singleOptions().map { it.text },
+                        q.alt?.let { alt -> QuizItem(alt.text, alt.singleOptions().map { it.text }, single = true) },
+                        single = true,
+                    )
+                } else {
+                    QuizItem(q.text, main[i].map { it.second }, q.alt?.let { alt -> QuizItem(alt.text, alts[i]!!.map { it.second }) })
+                }
             }
+            singleMixes = qs.map { q -> q.single }
             prakritiDoshas = main.map { st -> st.map { it.first } }
             altDoshas = alts.map { st -> st?.map { it.first } }
         } else {
@@ -138,7 +157,8 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Можно идти дальше: в Викрити выбран ответ, в Пракрити оценены все три утверждения. */
     val currentAnswered: Boolean
-        get() = if (mode == TestMode.PRAKRITI) ratings.getOrNull(index)?.all { it != null } == true
+        get() = if (mode == TestMode.PRAKRITI && items.getOrNull(index)?.single != true)
+            ratings.getOrNull(index)?.all { it != null } == true
         else answers.getOrNull(index) != null
 
     fun choose(optionIndex: Int) {
@@ -153,8 +173,15 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         }
         if (mode == TestMode.PRAKRITI) {
             result = Scoring.scoreRatings(ratings.mapIndexed { i, r ->
-                val doshas = if (useAlt[i]) altDoshas[i]!! else prakritiDoshas[i]
-                doshas.zip(r).associate { (d, v) -> d to (v ?: 0) }
+                val single = singleMixes[i]
+                if (single != null) {
+                    // выбранный вариант: «чистый» — 2 балла своей доше, смешанный — по 1 двум
+                    val mix = single[answers[i]!!]
+                    Dosha.entries.associateWith { mix.points(it) }
+                } else {
+                    val doshas = if (useAlt[i]) altDoshas[i]!! else prakritiDoshas[i]
+                    doshas.zip(r).associate { (d, v) -> d to (v ?: 0) }
+                }
             })
         } else {
             vikritiResult = VikritiScoring.score(vikritiDoshas.mapIndexed { i, opts -> opts[answers[i]!!] })
