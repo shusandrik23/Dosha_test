@@ -21,13 +21,16 @@ class UiStrings(val lang: Lang) {
         else -> t("точнее всего, ~10 мин", "most accurate, ~10 min")
     }
     val kidNote = t(
-        "🧸 Будет детская версия теста: простые вопросы про игры, еду и сон. Если читать пока трудно — пусть помогут мама или папа.",
-        "🧸 This will be the kids' version: simple questions about games, food and sleep. If reading is still hard, ask mum or dad to help.",
+        "🧸 Будет детская версия теста: простые вопросы про игры, еду и сон. Отвечай, как бывает обычно, а не только сегодня или когда болеешь. Если читать пока трудно — пусть помогут мама или папа.",
+        "🧸 This will be the kids' version: simple questions about games, food and sleep. Answer how things usually are, not just today or when you're ill. If reading is still hard, ask mum or dad to help.",
     )
     val adultNote = t(
-        "📝 Отвечайте, каким вы были большую часть жизни, а не только в последние дни. Выбирайте самый близкий вариант.",
-        "📝 Answer how you have been for most of your life, not just recently. Choose the closest option.",
+        "📝 Тест определяет вашу природную конституцию — то, какой вы от рождения. Отвечайте, как обычно бывает у вас на протяжении жизни, когда вы здоровы и спокойны, а не как в последние недели, при стрессе или болезни. Выбирайте самый близкий вариант.",
+        "📝 The test finds your natural constitution — how you are by birth. Answer how things usually are for you throughout life when you're healthy and calm, not how they've been in recent weeks, under stress or when ill. Choose the closest option.",
     )
+    fun questionHint(kid: Boolean) =
+        if (kid) t("Как бывает обычно, а не только сегодня", "How it usually is, not just today")
+        else t("Как обычно бывает на протяжении жизни, в спокойном состоянии", "How it usually is throughout your life, when you're calm and well")
     val start = t("Начать тест", "Start the test")
     val threeDoshas = t("Три доши", "The three doshas")
     fun doshaIntro(d: Dosha) = when (d) {

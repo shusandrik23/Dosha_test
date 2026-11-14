@@ -308,6 +308,12 @@ private fun QuizScreen(vm: QuizViewModel) {
                     .padding(horizontal = 20.dp, vertical = 20.dp),
             ) {
                 Text(question.text, style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    s.questionHint(vm.isKid),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(16.dp))
                 question.options.forEachIndexed { optIdx, option ->
                     OptionItem(
