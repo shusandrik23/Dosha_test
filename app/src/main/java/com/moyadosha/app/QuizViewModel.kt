@@ -11,7 +11,6 @@ import com.moyadosha.app.data.Dosha
 import com.moyadosha.app.data.DoshaResult
 import com.moyadosha.app.data.KID_MAX_AGE
 import com.moyadosha.app.data.Lang
-import com.moyadosha.app.data.Mix
 import com.moyadosha.app.data.Recommendations
 import com.moyadosha.app.data.SavedResult
 import com.moyadosha.app.data.Scoring
@@ -20,6 +19,7 @@ import com.moyadosha.app.data.VikritiQuestions
 import com.moyadosha.app.data.VikritiResult
 import com.moyadosha.app.data.VikritiScoring
 import com.moyadosha.app.data.VikritiTexts
+import com.moyadosha.app.data.pureStatements
 import com.moyadosha.app.data.questionsFor
 import kotlin.random.Random
 
@@ -29,7 +29,7 @@ enum class Screen { Welcome, Quiz, Result, History }
 enum class TestMode { PRAKRITI, VIKRITI }
 
 /** Вопрос для экрана: текст и варианты, без привязки к типу теста. */
-data class QuizItem(val text: String, val options: List<String>)
+data class QuizItem(val text: String, val options: List<String>, val alt: QuizItem? = null)
 
 class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** Язык выбирается по языку системы: русский или английский. */
@@ -53,7 +53,12 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** Вопросы с перемешанными вариантами ответа, чтобы не было угадываемого порядка. */
     var items: List<QuizItem> = emptyList()
         private set
-    private var prakritiMixes: List<List<Mix>> = emptyList()
+    /** Пракрити: доша каждого из трёх утверждений (в показанном порядке) у вопроса и у ситуации. */
+    private var prakritiDoshas: List<List<Dosha>> = emptyList()
+    private var altDoshas: List<List<Dosha>?> = emptyList()
+
+    /** Пракрити: оценки трёх утверждений текущего варианта вопроса (0/1/2 или null). */
+    val ratings = mutableStateListOf<List<Int?>>()
     private var vikritiDoshas: List<List<Dosha?>> = emptyList()
 
     /** Индекс выбранного варианта для каждого вопроса (или null). */
@@ -91,9 +96,14 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         mode = newMode
         val rnd = Random(System.nanoTime())
         if (newMode == TestMode.PRAKRITI) {
-            val qs = questionsFor(a, length, lang).map { it.copy(options = it.options.shuffled(rnd)) }
-            items = qs.map { q -> QuizItem(q.text, q.options.map { it.text }) }
-            prakritiMixes = qs.map { q -> q.options.map { it.mix } }
+            val qs = questionsFor(a, length, lang)
+            val main = qs.map { it.pureStatements().shuffled(rnd) }
+            val alts = qs.map { q -> q.alt?.pureStatements()?.shuffled(rnd) }
+            items = qs.mapIndexed { i, q ->
+                QuizItem(q.text, main[i].map { it.second }, q.alt?.let { alt -> QuizItem(alt.text, alts[i]!!.map { it.second }) })
+            }
+            prakritiDoshas = main.map { st -> st.map { it.first } }
+            altDoshas = alts.map { st -> st?.map { it.first } }
         } else {
             val qs = VikritiQuestions.forAge(a, lang).map { it.copy(options = it.options.shuffled(rnd)) }
             items = qs.map { q -> QuizItem(q.text, q.options.map { it.text }) }
@@ -101,24 +111,51 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         }
         answers.clear()
         repeat(items.size) { answers.add(null) }
+        useAlt.clear()
+        repeat(items.size) { useAlt.add(false) }
+        ratings.clear()
+        repeat(items.size) { ratings.add(listOf(null, null, null)) }
         index = 0
         result = null
         vikritiResult = null
         screen = Screen.Quiz
     }
 
+    /** true — вместо общего вопроса показана ситуация. */
+    val useAlt = mutableStateListOf<Boolean>()
+
+    /** Кнопка «Не знаю, что ответить» / «Вернуться к вопросу». */
+    fun toggleAlt() {
+        if (items.getOrNull(index)?.alt == null) return
+        useAlt[index] = !useAlt[index]
+        answers[index] = null
+        ratings[index] = listOf(null, null, null)
+    }
+
+    fun rate(statement: Int, value: Int) {
+        ratings[index] = ratings[index].toMutableList().also { it[statement] = value }
+    }
+
+    /** Можно идти дальше: в Викрити выбран ответ, в Пракрити оценены все три утверждения. */
+    val currentAnswered: Boolean
+        get() = if (mode == TestMode.PRAKRITI) ratings.getOrNull(index)?.all { it != null } == true
+        else answers.getOrNull(index) != null
+
     fun choose(optionIndex: Int) {
         answers[index] = optionIndex
     }
 
     fun next() {
-        if (answers[index] == null) return
+        if (!currentAnswered) return
         if (index < items.lastIndex) {
             index++
             return
         }
         if (mode == TestMode.PRAKRITI) {
-            result = Scoring.score(prakritiMixes.mapIndexed { i, opts -> opts[answers[i]!!] })
+            result = Scoring.scoreRatings(ratings.mapIndexed { i, r ->
+                val doshas = if (useAlt[i]) altDoshas[i]!! else prakritiDoshas[i]
+                doshas.zip(r).associate { (d, v) -> d to (v ?: 0) }
+            })
         } else {
             vikritiResult = VikritiScoring.score(vikritiDoshas.mapIndexed { i, opts -> opts[answers[i]!!] })
         }

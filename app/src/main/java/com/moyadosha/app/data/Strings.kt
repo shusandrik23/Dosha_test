@@ -90,6 +90,18 @@ The "My nature" test finds the dosha you were born with; the "My balance now" te
             if (ru) java.util.Locale("ru") else java.util.Locale.ENGLISH,
         ).format(java.util.Date(ts))
 
+
+    val dontKnow = t("🤔 Не знаю, что ответить", "🤔 I don't know what to answer")
+    val backToQuestion = t("← Вернуться к общему вопросу", "← Back to the general question")
+    val situationLabel = t("Представьте ситуацию", "Imagine this situation")
+    val home = t("На главную", "Home")
+
+
+    val rateNo = t("Не про меня", "Not me")
+    val rateBit = t("Немного", "A little")
+    val rateVery = t("Очень похоже", "Very much")
+    val scaleHint = t("Отметьте, насколько каждое утверждение похоже на вас", "Mark how much each statement sounds like you")
+
     fun questionOf(i: Int, n: Int) = t("Вопрос $i из $n", "Question $i of $n")
     val kidBadge = t("🧸 детский", "🧸 kids")
     val back = t("Назад", "Back")

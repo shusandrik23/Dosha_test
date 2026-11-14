@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +39,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -337,35 +339,63 @@ private fun QuizScreen(vm: QuizViewModel) {
             label = "question",
             modifier = Modifier.weight(1f),
         ) { i ->
-            val question = vm.items[i]
+            val base = vm.items[i]
+            val alt = vm.mode == TestMode.PRAKRITI && vm.useAlt.getOrElse(i) { false } && base.alt != null
+            val question = if (alt) base.alt!! else base
             Column(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 20.dp),
             ) {
+                if (alt) {
+                    Text(
+                        "💭 " + s.situationLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
                 Text(question.text, style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    if (vm.mode == TestMode.VIKRITI) vm.vtexts.hint(vm.isKid) else s.questionHint(vm.isKid),
+                    when {
+                        vm.mode == TestMode.VIKRITI -> vm.vtexts.hint(vm.isKid)
+                        else -> s.questionHint(vm.isKid) + ". " + s.scaleHint
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(16.dp))
-                question.options.forEachIndexed { optIdx, option ->
-                    OptionItem(
-                        letter = (if (vm.lang == Lang.RU) "АБВГДЕ" else "ABCDEF")[optIdx],
-                        text = option,
-                        selected = vm.answers[i] == optIdx,
-                        onClick = {
-                            vm.choose(optIdx)
-                            scope.launch {
-                                delay(260)
-                                if (vm.index == i) vm.next()
-                            }
-                        },
-                    )
-                    Spacer(Modifier.height(10.dp))
+                if (vm.mode == TestMode.PRAKRITI) {
+                    val r = vm.ratings.getOrElse(i) { listOf(null, null, null) }
+                    question.options.forEachIndexed { st, text ->
+                        ScaleItem(text, r.getOrNull(st), listOf(s.rateNo, s.rateBit, s.rateVery)) { v ->
+                            if (vm.index == i) vm.rate(st, v)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    if (base.alt != null) {
+                        TextButton(onClick = { vm.toggleAlt() }, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (alt) s.backToQuestion else s.dontKnow)
+                        }
+                    }
+                } else {
+                    question.options.forEachIndexed { optIdx, option ->
+                        OptionItem(
+                            letter = (if (vm.lang == Lang.RU) "АБВГДЕ" else "ABCDEF")[optIdx],
+                            text = option,
+                            selected = vm.answers[i] == optIdx,
+                            onClick = {
+                                vm.choose(optIdx)
+                                scope.launch {
+                                    delay(260)
+                                    if (vm.index == i) vm.next()
+                                }
+                            },
+                        )
+                        Spacer(Modifier.height(10.dp))
+                    }
                 }
             }
         }
@@ -381,7 +411,7 @@ private fun QuizScreen(vm: QuizViewModel) {
             ) { Text(s.back) }
             Button(
                 onClick = { vm.next() },
-                enabled = vm.answers.getOrNull(vm.index) != null,
+                enabled = vm.currentAnswered,
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(14.dp),
             ) { Text(if (vm.index == total - 1) s.seeResult else s.next) }
@@ -439,6 +469,7 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 20.dp),
     ) {
+        HomeButton(vm)
         ResultHeader(vm.resultName, s.yourDosha(kid), lang, r)
         TakenOn(vm)
         Spacer(Modifier.height(16.dp))
@@ -719,6 +750,7 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 20.dp),
     ) {
+        HomeButton(vm)
         val colors = if (r.balanced) listOf(BalanceGreen, BalanceGreen.copy(alpha = 0.7f)) else r.leading.map { it.color() }
         val brush = if (colors.size > 1) Brush.linearGradient(colors.map { it.copy(alpha = 0.85f) })
         else Brush.linearGradient(listOf(colors[0].copy(alpha = 0.95f), colors[0].copy(alpha = 0.65f)))
@@ -992,6 +1024,55 @@ private fun HistoryItem(vm: QuizViewModel, item: SavedResult, onDelete: () -> Un
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Filled.Delete, contentDescription = s.delete)
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun HomeButton(vm: QuizViewModel) {
+    TextButton(onClick = { vm.toWelcome() }, contentPadding = PaddingValues(horizontal = 4.dp)) {
+        Icon(Icons.Filled.Home, contentDescription = null)
+        Spacer(Modifier.width(6.dp))
+        Text(vm.strings.home)
+    }
+    Spacer(Modifier.height(4.dp))
+}
+
+/** Утверждение и шкала «Не про меня / Немного / Очень похоже». */
+@Composable
+private fun ScaleItem(text: String, value: Int?, labels: List<String>, onRate: (Int) -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(if (value != null) 2.dp else 1.dp, if (value != null) primary.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(text, style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                labels.forEachIndexed { v, label ->
+                    val selected = value == v
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) primary else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { onRate(v) }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
             }
         }
     }

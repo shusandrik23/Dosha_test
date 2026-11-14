@@ -44,7 +44,15 @@ enum class Mix(val vata: Int, val pitta: Int, val kapha: Int) {
 
 data class Option(val mix: Mix, val text: String)
 
-data class Question(val text: String, val options: List<Option>)
+/** alt — вопрос-ситуация для кнопки «Не знаю, что ответить» (с теми же баллами). */
+data class Question(val text: String, val options: List<Option>, val alt: Question? = null)
+
+/** Утверждения трёх «чистых» дош для шкалы «насколько похоже» (Вата, Питта, Капха). */
+fun Question.pureStatements(): List<Pair<Dosha, String>> = listOf(
+    Dosha.VATA to options.first { it.mix == Mix.V }.text,
+    Dosha.PITTA to options.first { it.mix == Mix.P }.text,
+    Dosha.KAPHA to options.first { it.mix == Mix.K }.text,
+)
 
 internal fun q(text: String, vararg options: Pair<Mix, String>) =
     Question(text, options.map { Option(it.first, it.second) })
@@ -79,5 +87,8 @@ fun minLengthFor(index: Int, kid: Boolean): Int = when {
 
 fun questionsFor(age: Int, count: Int, lang: Lang): List<Question> {
     val kid = age <= KID_MAX_AGE
-    return allQuestions(kid, lang).filterIndexed { i, _ -> minLengthFor(i, kid) <= count }
+    val situations = Situations.forSet(kid, lang)
+    return allQuestions(kid, lang)
+        .mapIndexed { i, q -> q.copy(alt = situations[i]) }
+        .filterIndexed { i, _ -> minLengthFor(i, kid) <= count }
 }

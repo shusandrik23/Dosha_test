@@ -17,10 +17,20 @@ object Scoring {
     /** Если все три доши укладываются в этот разброс — тип сбалансированный (трёхдошевый). */
     private const val TRI_SPREAD = 8
 
-    fun score(answers: List<Mix>): DoshaResult {
-        val raw = Dosha.entries.associateWith { d -> answers.sumOf { it.points(d) } }
-        val total = raw.values.sum().coerceAtLeast(1)
-        val percent = roundTo100(raw.mapValues { it.value * 100.0 / total })
+    fun score(answers: List<Mix>): DoshaResult =
+        scorePoints(Dosha.entries.associateWith { d -> answers.sumOf { it.points(d) } })
+
+    /**
+     * Шкала «насколько похоже»: для каждого вопроса оценки утверждений каждой доши
+     * (0 — не про меня, 1 — немного, 2 — очень похоже).
+     */
+    fun scoreRatings(ratings: List<Map<Dosha, Int>>): DoshaResult =
+        scorePoints(Dosha.entries.associateWith { d -> ratings.sumOf { it[d] ?: 0 } })
+
+    fun scorePoints(raw: Map<Dosha, Int>): DoshaResult {
+        val total = raw.values.sum()
+        val percent = if (total == 0) mapOf(Dosha.VATA to 34, Dosha.PITTA to 33, Dosha.KAPHA to 33)
+        else roundTo100(raw.mapValues { it.value * 100.0 / total })
 
         val sorted = Dosha.entries.sortedByDescending { percent.getValue(it) }
         val (first, second, third) = sorted.map { percent.getValue(it) }
