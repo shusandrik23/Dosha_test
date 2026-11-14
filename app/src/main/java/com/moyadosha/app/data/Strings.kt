@@ -103,6 +103,7 @@ The "My nature" test finds the dosha you were born with; the "My balance now" te
     val scaleHint = t("Отметьте, насколько каждое утверждение похоже на вас", "Mark how much each statement sounds like you")
 
     fun questionOf(i: Int, n: Int) = t("Вопрос $i из $n", "Question $i of $n")
+    fun partOf(i: Int, n: Int) = t("часть $i из $n", "part $i of $n")
     val kidBadge = t("🧸 детский", "🧸 kids")
     val back = t("Назад", "Back")
     val next = t("Далее", "Next")

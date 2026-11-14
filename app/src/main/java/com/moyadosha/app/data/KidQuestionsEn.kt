@@ -65,7 +65,7 @@ object KidQuestionsEn {
             VK to "Sometimes heavy, sometimes it hurts",
         ),
         q(
-            "How do you fall asleep?",
+            "How do you sleep?",
             V to "Slowly, more than half an hour, I toss and turn",
             VP to "I fall asleep if I'm tired, but wake up at night",
             P to "Quickly, and in the morning I'm up first and full of energy",

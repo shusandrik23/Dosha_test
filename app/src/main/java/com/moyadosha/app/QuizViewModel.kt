@@ -37,6 +37,12 @@ data class QuizItem(
     val alt: QuizItem? = null,
     /** Выбор одного варианта вместо шкалы. */
     val single: Boolean = false,
+    /** Номер вопроса для счётчика: части одного вопроса (например, сна) идут под одним номером. */
+    val group: Int = 0,
+    /** Часть вопроса: название, номер и сколько всего частей (null — обычный вопрос). */
+    val part: String? = null,
+    val partNo: Int = 0,
+    val partCount: Int = 0,
 )
 
 class QuizViewModel(app: Application) : AndroidViewModel(app) {
@@ -66,6 +72,12 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
     private var altDoshas: List<List<Dosha>?> = emptyList()
     /** Пракрити: варианты вопросов с выбором одного ответа (null — шкала). */
     private var singleMixes: List<List<Mix>?> = emptyList()
+    /** Пракрити: вес экрана в итоге — обычный вопрос 12, часть вопроса 12 / число частей. */
+    private var weights: List<Int> = emptyList()
+
+    /** Сколько вопросов в тесте (части одного вопроса считаются одним). */
+    var groupCount by mutableIntStateOf(0)
+        private set
 
     /** Пракрити: оценки трёх утверждений текущего варианта вопроса (0/1/2 или null). */
     val ratings = mutableStateListOf<List<Int?>>()
@@ -107,26 +119,52 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
         val rnd = Random(System.nanoTime())
         if (newMode == TestMode.PRAKRITI) {
             val qs = questionsForLength(a, length, lang)
-            val main = qs.map { it.pureStatements().shuffled(rnd) }
-            val alts = qs.map { q -> q.alt?.pureStatements()?.shuffled(rnd) }
-            items = qs.mapIndexed { i, q ->
-                if (q.single != null) {
+            val flat = mutableListOf<QuizItem>()
+            val doshas = mutableListOf<List<Dosha>>()
+            val altD = mutableListOf<List<Dosha>?>()
+            val singles = mutableListOf<List<Mix>?>()
+            val w = mutableListOf<Int>()
+            qs.forEachIndexed { g, q ->
+                val parts = q.parts
+                if (parts != null) {
+                    // вопрос из частей: каждая часть — своя шкала на отдельном экране
+                    parts.forEachIndexed { p, part ->
+                        val st = part.pureStatements().shuffled(rnd)
+                        flat += QuizItem(q.text, st.map { it.second }, group = g, part = part.text, partNo = p + 1, partCount = parts.size)
+                        doshas += st.map { it.first }
+                        altD += null
+                        singles += null
+                        w += WEIGHT / parts.size
+                    }
+                    return@forEachIndexed
+                }
+                val main = q.pureStatements().shuffled(rnd)
+                val alt = q.alt?.pureStatements()?.shuffled(rnd)
+                flat += if (q.single != null) {
                     QuizItem(
                         q.text, q.singleOptions().map { it.text },
-                        q.alt?.let { alt -> QuizItem(alt.text, alt.singleOptions().map { it.text }, single = true) },
-                        single = true,
+                        q.alt?.let { a2 -> QuizItem(a2.text, a2.singleOptions().map { it.text }, single = true) },
+                        single = true, group = g,
                     )
                 } else {
-                    QuizItem(q.text, main[i].map { it.second }, q.alt?.let { alt -> QuizItem(alt.text, alts[i]!!.map { it.second }) })
+                    QuizItem(q.text, main.map { it.second }, q.alt?.let { a2 -> QuizItem(a2.text, alt!!.map { it.second }) }, group = g)
                 }
+                doshas += main.map { it.first }
+                altD += alt?.map { it.first }
+                singles += q.single
+                w += WEIGHT
             }
-            singleMixes = qs.map { q -> q.single }
-            prakritiDoshas = main.map { st -> st.map { it.first } }
-            altDoshas = alts.map { st -> st?.map { it.first } }
+            items = flat
+            prakritiDoshas = doshas
+            altDoshas = altD
+            singleMixes = singles
+            weights = w
+            groupCount = qs.size
         } else {
             val qs = VikritiQuestions.forAge(a, lang).map { it.copy(options = it.options.shuffled(rnd)) }
-            items = qs.map { q -> QuizItem(q.text, q.options.map { it.text }) }
+            items = qs.mapIndexed { i, q -> QuizItem(q.text, q.options.map { it.text }, group = i) }
             vikritiDoshas = qs.map { q -> q.options.map { it.dosha } }
+            groupCount = qs.size
         }
         answers.clear()
         repeat(items.size) { answers.add(null) }
@@ -177,10 +215,10 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
                 if (single != null) {
                     // выбранный вариант: «чистый» — 2 балла своей доше, смешанный — по 1 двум
                     val mix = single[answers[i]!!]
-                    Dosha.entries.associateWith { mix.points(it) }
+                    Dosha.entries.associateWith { mix.points(it) * weights[i] }
                 } else {
                     val doshas = if (useAlt[i]) altDoshas[i]!! else prakritiDoshas[i]
-                    doshas.zip(r).associate { (d, v) -> d to (v ?: 0) }
+                    doshas.zip(r).associate { (d, v) -> d to (v ?: 0) * weights[i] }
                 }
             })
         } else {
@@ -247,5 +285,10 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** «Назад» с экрана результата. */
     fun leaveResult() {
         screen = if (fromHistory) Screen.History else Screen.Welcome
+    }
+
+    private companion object {
+        /** Вес обычного вопроса; делится на 3 и на 4, чтобы части вопроса давали целые баллы. */
+        const val WEIGHT = 12
     }
 }

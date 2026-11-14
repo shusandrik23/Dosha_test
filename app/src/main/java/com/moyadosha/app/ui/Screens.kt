@@ -288,6 +288,7 @@ private fun QuizScreen(vm: QuizViewModel) {
     val scope = rememberCoroutineScope()
     var askExit by remember { mutableStateOf(false) }
     val total = vm.items.size
+    val current = vm.items.getOrNull(vm.index)
 
     BackHandler { if (!vm.back()) askExit = true }
 
@@ -310,7 +311,7 @@ private fun QuizScreen(vm: QuizViewModel) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s.back)
             }
             Text(
-                s.questionOf(vm.index + 1, total),
+                s.questionOf((current?.group ?: 0) + 1, vm.groupCount),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -322,7 +323,8 @@ private fun QuizScreen(vm: QuizViewModel) {
                 )
             }
         }
-        val progress by animateFloatAsState((vm.index + 1f) / total, tween(300), label = "progress")
+        val done = current?.let { it.group + if (it.part != null) it.partNo.toFloat() / it.partCount else 1f } ?: 1f
+        val progress by animateFloatAsState(done / vm.groupCount.coerceAtLeast(1), tween(300), label = "progress")
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(8.dp).clip(CircleShape),
@@ -380,6 +382,15 @@ private fun QuizScreen(vm: QuizViewModel) {
                     Spacer(Modifier.height(14.dp))
                 }
                 Text(question.text, style = MaterialTheme.typography.titleLarge)
+                if (base.part != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        base.part + " · " + s.partOf(base.partNo, base.partCount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     when {

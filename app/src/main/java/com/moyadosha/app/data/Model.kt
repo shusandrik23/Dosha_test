@@ -48,12 +48,15 @@ data class Option(val mix: Mix, val text: String)
  * alt — вопрос-ситуация для переключателя «Вопрос / Ситуация» (с теми же баллами).
  * single — вопрос с выбором одного варианта (ответы исключают друг друга): какие варианты
  * показать и в каком порядке. null — обычная шкала «насколько похоже».
+ * parts — вопрос из нескольких частей (например, сон: засыпание, чуткость, продолжительность, утро).
+ * Каждая часть — отдельная шкала на своём экране, а вместе они весят как один вопрос.
  */
 data class Question(
     val text: String,
     val options: List<Option>,
     val alt: Question? = null,
     val single: List<Mix>? = null,
+    val parts: List<Question>? = null,
 )
 
 /** Варианты для вопроса с выбором одного ответа — в заданном порядке. */
@@ -145,6 +148,11 @@ fun questionsForLength(age: Int, length: Int, lang: Lang): List<Question> {
             'A' -> a[r.i]
             else -> b[r.i]
         }
-        if (order != null) q.copy(single = order) else q
+        val parts = if (r.src == 'M') SleepParts.forQuestion(kid, lang, r.i) else null
+        when {
+            order != null -> q.copy(single = order)
+            parts != null -> q.copy(parts = parts)
+            else -> q
+        }
     }
 }
