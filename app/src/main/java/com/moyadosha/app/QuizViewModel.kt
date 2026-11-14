@@ -124,7 +124,7 @@ class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** true — вместо общего вопроса показана ситуация. */
     val useAlt = mutableStateListOf<Boolean>()
 
-    /** Кнопка «Не знаю, что ответить» / «Вернуться к вопросу». */
+    /** Переключатель над вопросом: общий вопрос ↔ ситуация. */
     fun toggleAlt() {
         if (items.getOrNull(index)?.alt == null) return
         useAlt[index] = !useAlt[index]

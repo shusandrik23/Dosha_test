@@ -348,13 +348,36 @@ private fun QuizScreen(vm: QuizViewModel) {
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 20.dp),
             ) {
-                if (alt) {
-                    Text(
-                        "💭 " + s.situationLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(6.dp))
+                if (vm.mode == TestMode.PRAKRITI && base.alt != null) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf(false to s.typeQuestion, true to s.typeSituation).forEach { (isAlt, label) ->
+                            val selected = alt == isAlt
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (selected) MaterialTheme.colorScheme.surface else Color.Transparent)
+                                    .clickable { if (!selected && vm.index == i) vm.toggleAlt() }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
                 }
                 Text(question.text, style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(6.dp))
@@ -374,11 +397,6 @@ private fun QuizScreen(vm: QuizViewModel) {
                             if (vm.index == i) vm.rate(st, v)
                         }
                         Spacer(Modifier.height(12.dp))
-                    }
-                    if (base.alt != null) {
-                        TextButton(onClick = { vm.toggleAlt() }, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (alt) s.backToQuestion else s.dontKnow)
-                        }
                     }
                 } else {
                     question.options.forEachIndexed { optIdx, option ->

@@ -91,9 +91,8 @@ The "My nature" test finds the dosha you were born with; the "My balance now" te
         ).format(java.util.Date(ts))
 
 
-    val dontKnow = t("🤔 Не знаю, что ответить", "🤔 I don't know what to answer")
-    val backToQuestion = t("← Вернуться к общему вопросу", "← Back to the general question")
-    val situationLabel = t("Представьте ситуацию", "Imagine this situation")
+    val typeQuestion = t("📋 Вопрос", "📋 Question")
+    val typeSituation = t("💭 Ситуация", "💭 Situation")
     val home = t("На главную", "Home")
 
 

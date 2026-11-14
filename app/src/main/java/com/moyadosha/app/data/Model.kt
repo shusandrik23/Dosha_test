@@ -44,7 +44,7 @@ enum class Mix(val vata: Int, val pitta: Int, val kapha: Int) {
 
 data class Option(val mix: Mix, val text: String)
 
-/** alt — вопрос-ситуация для кнопки «Не знаю, что ответить» (с теми же баллами). */
+/** alt — вопрос-ситуация для переключателя «Вопрос / Ситуация» (с теми же баллами). */
 data class Question(val text: String, val options: List<Option>, val alt: Question? = null)
 
 /** Утверждения трёх «чистых» дош для шкалы «насколько похоже» (Вата, Питта, Капха). */
