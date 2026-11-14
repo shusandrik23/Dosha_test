@@ -21,7 +21,7 @@ object RecommendationsEn : RecTexts {
                 "It's important not to overdo it: eat on time, rest and go to bed on time, or you may get tired, cranky or angry."
         else
             "Vata-Pitta: the lightness and speed of Vata plus the drive of Pitta. You think fast, are full of ideas and know how to make them happen. " +
-                "Your weak spot is overload: anxiety and irritation, irregular meals, problems with sleep and digestion. " +
+                "You flare up easily and speak fast. Your weak spot is overload and burnout: anxiety and irritation, irregular meals, problems with sleep and digestion. " +
                 "Routine, regular meals and learning to rest are especially important for you."
 
         setOf(Dosha.PITTA, Dosha.KAPHA) -> if (kid)
@@ -30,7 +30,7 @@ object RecommendationsEn : RecTexts {
         else
             "Pitta-Kapha: the strength and drive of Pitta plus the stability and stamina of Kapha. " +
                 "This usually means good health, good energy and self-confidence. " +
-                "Your weak spot is a tendency to overeat, gain weight and be stubborn. Regular activity and light food help."
+                "You are slow to boil but remember grudges for a long time. Your weak spot is a tendency to overeat, gain weight and be stubborn. Regular activity and light food help."
 
         else -> if (kid)
             "You have a little breeze and a little earth inside 🌬️🌿. Sometimes you are quick and cheerful, sometimes calm and dreamy. " +
@@ -38,7 +38,7 @@ object RecommendationsEn : RecTexts {
         else
             "Vata-Kapha: the lightness of Vata plus the softness and calm of Kapha. You are a sensitive, gentle and creative person. " +
                 "Both doshas are \"cold\", so warmth is especially important for you: warm food, warm clothes, spices and movement. " +
-                "Weak spots: feeling cold, sluggish digestion, frequent colds and mood swings."
+                "Weak spots: feeling very cold, especially in damp weather, slow digestion with heaviness and bloating, dry skin with puffiness, indecision, a tendency to melancholy and solitude."
     }
 
     private const val ADULT_TRI =
