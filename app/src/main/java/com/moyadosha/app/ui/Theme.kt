@@ -15,6 +15,7 @@ val Cream = Color(0xFFFBF6EE)
 val Sand = Color(0xFFF3E3CC)
 val Terracotta = Color(0xFF8A5A44)
 val Ink = Color(0xFF3B2A22)
+val BalanceGreen = Color(0xFF4FA88A)
 
 fun Dosha.color(): Color = when (this) {
     Dosha.VATA -> Color(0xFF7C9CC4)

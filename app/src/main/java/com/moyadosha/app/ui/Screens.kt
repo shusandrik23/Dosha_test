@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moyadosha.app.QuizViewModel
 import com.moyadosha.app.Screen
+import com.moyadosha.app.TestMode
 import com.moyadosha.app.data.Dosha
 import com.moyadosha.app.data.DoshaResult
 import com.moyadosha.app.data.Lang
@@ -98,7 +99,7 @@ fun DoshaApp(vm: QuizViewModel, onShare: (String) -> Unit) {
                     when (screen) {
                         Screen.Welcome -> WelcomeScreen(vm)
                         Screen.Quiz -> QuizScreen(vm)
-                        Screen.Result -> ResultScreen(vm, onShare)
+                        Screen.Result -> if (vm.mode == TestMode.VIKRITI) VikritiResultScreen(vm, onShare) else ResultScreen(vm, onShare)
                     }
                 }
             }
@@ -111,6 +112,7 @@ fun DoshaApp(vm: QuizViewModel, onShare: (String) -> Unit) {
 @Composable
 private fun WelcomeScreen(vm: QuizViewModel) {
     val s = vm.strings
+    val v = vm.vtexts
     val focus = LocalFocusManager.current
     Column(
         Modifier
@@ -164,13 +166,33 @@ private fun WelcomeScreen(vm: QuizViewModel) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            AnimatedVisibility(visible = vm.age != null) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    InfoNote(if (vm.isKid) s.kidNote else s.adultNote)
+            Spacer(Modifier.height(16.dp))
+            Text(v.chooseTest, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoiceCard(v.prakritiTitle, v.prakritiSub, vm.mode == TestMode.PRAKRITI, Modifier.weight(1f)) {
+                    vm.mode = TestMode.PRAKRITI
+                }
+                ChoiceCard(v.vikritiTitle, v.vikritiSub, vm.mode == TestMode.VIKRITI, Modifier.weight(1f)) {
+                    vm.mode = TestMode.VIKRITI
                 }
             }
 
+            AnimatedVisibility(visible = vm.age != null) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    InfoNote(
+                        when {
+                            vm.mode == TestMode.VIKRITI -> v.note(vm.isKid)
+                            vm.isKid -> s.kidNote
+                            else -> s.adultNote
+                        }
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = vm.mode == TestMode.PRAKRITI) {
+            Column {
             Spacer(Modifier.height(16.dp))
             Text(s.howMany, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
@@ -203,6 +225,8 @@ private fun WelcomeScreen(vm: QuizViewModel) {
                         )
                     }
                 }
+            }
+            }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -248,7 +272,7 @@ private fun QuizScreen(vm: QuizViewModel) {
     val s = vm.strings
     val scope = rememberCoroutineScope()
     var askExit by remember { mutableStateOf(false) }
-    val total = vm.questions.size
+    val total = vm.items.size
 
     BackHandler { if (!vm.back()) askExit = true }
 
@@ -300,7 +324,7 @@ private fun QuizScreen(vm: QuizViewModel) {
             label = "question",
             modifier = Modifier.weight(1f),
         ) { i ->
-            val question = vm.questions[i]
+            val question = vm.items[i]
             Column(
                 Modifier
                     .fillMaxSize()
@@ -310,7 +334,7 @@ private fun QuizScreen(vm: QuizViewModel) {
                 Text(question.text, style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    s.questionHint(vm.isKid),
+                    if (vm.mode == TestMode.VIKRITI) vm.vtexts.hint(vm.isKid) else s.questionHint(vm.isKid),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -318,7 +342,7 @@ private fun QuizScreen(vm: QuizViewModel) {
                 question.options.forEachIndexed { optIdx, option ->
                     OptionItem(
                         letter = (if (vm.lang == Lang.RU) "АБВГДЕ" else "ABCDEF")[optIdx],
-                        text = option.text,
+                        text = option,
                         selected = vm.answers[i] == optIdx,
                         onClick = {
                             vm.choose(optIdx)
@@ -446,6 +470,12 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
         }
         Spacer(Modifier.height(10.dp))
         OutlinedButton(
+            onClick = { vm.start(TestMode.VIKRITI) },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) { Text(vm.vtexts.checkBalance) }
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(
             onClick = { vm.toWelcome() },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(14.dp),
@@ -533,7 +563,7 @@ private fun PercentBar(d: Dosha, lang: Lang, percent: Int) {
 }
 
 @Composable
-private fun DoshaRecommendations(d: Dosha, kid: Boolean, vm: QuizViewModel, initiallyExpanded: Boolean) {
+private fun DoshaRecommendations(d: Dosha, kid: Boolean, vm: QuizViewModel, initiallyExpanded: Boolean, vikriti: Boolean = false) {
     val s = vm.strings
     val p = vm.recommendations.profile(d, kid)
     var expanded by rememberSaveable(d) { mutableStateOf(initiallyExpanded) }
@@ -555,7 +585,7 @@ private fun DoshaRecommendations(d: Dosha, kid: Boolean, vm: QuizViewModel, init
             Text(d.emoji, fontSize = 24.sp)
             Spacer(Modifier.width(10.dp))
             Text(
-                s.forDosha(d),
+                if (vikriti) vm.vtexts.forDosha(d) else s.forDosha(d),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -567,10 +597,12 @@ private fun DoshaRecommendations(d: Dosha, kid: Boolean, vm: QuizViewModel, init
         }
         AnimatedVisibility(visible = expanded) {
             Column(Modifier.padding(16.dp)) {
-                SubTitle(s.strengths(kid))
-                Bullets(p.strengths, d.color())
-                Spacer(Modifier.height(12.dp))
-                SubTitle(s.imbalance(d, kid))
+                if (!vikriti) {
+                    SubTitle(s.strengths(kid))
+                    Bullets(p.strengths, d.color())
+                    Spacer(Modifier.height(12.dp))
+                }
+                SubTitle(if (vikriti) vm.vtexts.signs else s.imbalance(d, kid))
                 Bullets(p.imbalance, d.color())
                 p.sections.forEach { s ->
                     Spacer(Modifier.height(12.dp))
@@ -630,4 +662,162 @@ private fun InfoNote(text: String) {
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
     )
+}
+
+
+@Composable
+private fun ChoiceCard(title: String, sub: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .border(
+                if (selected) 2.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+    ) {
+        Text(title, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(2.dp))
+        Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// ---------- Результат теста на баланс ----------
+
+@Composable
+private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
+    val r = vm.vikritiResult ?: return
+    val v = vm.vtexts
+    val s = vm.strings
+    val lang = vm.lang
+    val kid = vm.isKid
+    val age = vm.age ?: 0
+    BackHandler { vm.toWelcome() }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        val colors = if (r.balanced) listOf(BalanceGreen, BalanceGreen.copy(alpha = 0.7f)) else r.leading.map { it.color() }
+        val brush = if (colors.size > 1) Brush.linearGradient(colors.map { it.copy(alpha = 0.85f) })
+        else Brush.linearGradient(listOf(colors[0].copy(alpha = 0.95f), colors[0].copy(alpha = 0.65f)))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(brush)
+                .padding(24.dp),
+        ) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                val name = vm.name.trim()
+                Text(
+                    (if (name.isEmpty()) "" else "$name, ") + v.header(kid),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(if (r.balanced) "☯️" else r.leading.joinToString("") { it.emoji }, fontSize = 44.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(v.title(r), color = Color.White, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        SoftCard {
+            Text(v.proportions(kid), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(12.dp))
+            ShareBar("✅ ${v.norm}", BalanceGreen, r.percents.getValue(null))
+            Spacer(Modifier.height(10.dp))
+            Dosha.entries.sortedByDescending { r.percents.getValue(it) }.forEach { d ->
+                ShareBar("${d.emoji} ${d.title(lang)}", d.color(), r.percents.getValue(d))
+                Spacer(Modifier.height(10.dp))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        SoftCard {
+            Text(v.whatItMeans(kid), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Text(v.summary(r, kid), style = MaterialTheme.typography.bodyLarge)
+        }
+
+        if (!r.balanced) {
+            Spacer(Modifier.height(20.dp))
+            Text(v.tipsTitle(kid), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            r.leading.forEachIndexed { i, d ->
+                DoshaRecommendations(d, kid, vm, initiallyExpanded = i == 0, vikriti = true)
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = { onShare(v.shareText(vm.name, age, kid, r)) },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Icon(Icons.Filled.Share, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(s.share, fontSize = 17.sp)
+        }
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(
+            onClick = { vm.start(TestMode.PRAKRITI) },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) { Text(v.takePrakriti) }
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(
+            onClick = { vm.toWelcome() },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Icon(Icons.Filled.Refresh, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(s.retake)
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            vm.recommendations.disclaimer,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun ShareBar(label: String, color: Color, percent: Int) {
+    val anim by animateFloatAsState(percent / 100f, tween(900), label = "share")
+    Column {
+        Row(Modifier.fillMaxWidth()) {
+            Text(label, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text("$percent%", fontWeight = FontWeight.Bold, color = color)
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.15f)),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(anim)
+                    .height(12.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+        }
+    }
 }
