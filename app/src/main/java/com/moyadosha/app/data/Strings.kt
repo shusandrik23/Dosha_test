@@ -39,6 +39,41 @@ class UiStrings(val lang: Lang) {
         Dosha.KAPHA -> t("спокойствие, выносливость, доброта", "calm, stamina, kindness")
     }
 
+
+    val aboutTitle = t("Что такое доши и зачем их знать?", "What are doshas and why know them?")
+    val aboutText = t(
+        """Аюрведа — традиционная индийская система здоровья, которой больше 3000 лет. Она описывает три доши — три силы, из которых, по её представлениям, складываются тело и характер человека:
+
+• Вата (воздух и эфир) — движение: дыхание, кровообращение, нервная система, мысли.
+• Питта (огонь и вода) — превращение: пищеварение, обмен веществ, температура тела, ясность ума и решимость.
+• Капха (земля и вода) — устойчивость: строение тела, суставы, иммунитет, спокойствие и выносливость.
+
+Все три доши есть в каждом человеке, но в разной пропорции. Пропорция, с которой вы родились, — ваша природная конституция (Пракрити); она остаётся с вами всю жизнь. Текущее состояние (Викрити) меняется от стресса, питания, сезона и возраста: когда какая-то доша «выходит вперёд», появляется дисбаланс.
+
+Зачем это знать:
+• понять свои особенности — почему вы мёрзнете или, наоборот, вам всегда жарко, почему легко набираете вес или не можете поправиться;
+• подобрать еду, режим дня и движение под себя, а не по чужим советам;
+• вовремя заметить дисбаланс и мягко вернуть себя в равновесие;
+• лучше понимать близких и детей — у каждого своя природа.
+
+Тест «Моя природа» определяет врождённую дошу, тест «Мой баланс сейчас» — что вышло из равновесия за последние недели.""",
+        """Ayurveda is a traditional Indian health system more than 3,000 years old. It describes three doshas — three forces that, in its view, make up a person's body and character:
+
+• Vata (air and space) — movement: breathing, circulation, the nervous system, thoughts.
+• Pitta (fire and water) — transformation: digestion, metabolism, body temperature, a clear mind and determination.
+• Kapha (earth and water) — stability: body structure, joints, immunity, calm and stamina.
+
+All three doshas are present in everyone, but in different proportions. The proportion you were born with is your natural constitution (Prakriti); it stays with you for life. Your current state (Vikriti) changes with stress, food, season and age: when one dosha "comes forward", an imbalance appears.
+
+Why know this:
+• to understand yourself — why you're always cold or always hot, why you gain weight easily or can't put it on;
+• to choose food, daily routine and exercise that suit you, not someone else;
+• to notice an imbalance early and gently get back into balance;
+• to better understand your family and children — everyone has their own nature.
+
+The "My nature" test finds the dosha you were born with; the "My balance now" test shows what has gone out of balance in recent weeks.""",
+    )
+
     fun questionOf(i: Int, n: Int) = t("Вопрос $i из $n", "Question $i of $n")
     val kidBadge = t("🧸 детский", "🧸 kids")
     val back = t("Назад", "Back")

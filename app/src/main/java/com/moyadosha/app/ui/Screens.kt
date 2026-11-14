@@ -239,6 +239,8 @@ private fun WelcomeScreen(vm: QuizViewModel) {
         }
 
         Spacer(Modifier.height(20.dp))
+        AboutCard(s.aboutTitle, s.aboutText)
+        Spacer(Modifier.height(16.dp))
         Text(s.threeDoshas, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Dosha.entries.forEach { DoshaIntro(it, vm.lang, s.doshaIntro(it)) }
@@ -818,6 +820,35 @@ private fun ShareBar(label: String, color: Color, percent: Int) {
                     .clip(CircleShape)
                     .background(color),
             )
+        }
+    }
+}
+
+
+@Composable
+private fun AboutCard(title: String, text: String) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val arrow by animateFloatAsState(if (expanded) 180f else 0f, label = "about")
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("❓", fontSize = 22.sp)
+            Spacer(Modifier.width(10.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.rotate(arrow))
+        }
+        AnimatedVisibility(visible = expanded) {
+            Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp))
         }
     }
 }
