@@ -1,7 +1,7 @@
 package com.moyadosha.app.data
 
 /**
- * Вопросы, разбитые на части (сон, волосы): у каждой части своя шкала «насколько похоже»
+ * Вопросы, разбитые на части (сон, волосы, кожа, пищеварение): у каждой части своя шкала «насколько похоже»
  * с утверждениями Ваты, Питты и Капхи. Части вместе весят как один вопрос.
  */
 object QuestionParts {
@@ -10,6 +10,10 @@ object QuestionParts {
     private const val ADULT_HAIR = 3
     private const val KID_SLEEP = 6
     private const val KID_HAIR = 12
+    private const val ADULT_SKIN = 2
+    private const val ADULT_DIGESTION = 8
+    private const val KID_SKIN = 11
+    private const val KID_TUMMY = 5
 
     private fun part(title: String, vata: String, pitta: String, kapha: String) =
         q(title, Mix.V to vata, Mix.P to pitta, Mix.K to kapha)
@@ -150,13 +154,145 @@ object QuestionParts {
             "Dark and shiny"),
     )
 
+    val skinAdultRu = listOf(
+        part("Сухость и жирность",
+            "Сухая, часто стягивает и шелушится",
+            "Нормальная, но в жару быстро становится влажной и блестит",
+            "Плотная, жирноватая, почти никогда не сохнет"),
+        part("На ощупь",
+            "Прохладная, особенно руки и ноги",
+            "Тёплая, бывает горячей",
+            "Прохладная и чуть влажная"),
+        part("Толщина и цвет",
+            "Тонкая, вены просвечивают, рано появляются морщинки",
+            "Мягкая, розоватая, много родинок или веснушек",
+            "Толстая, гладкая, ровного цвета, морщин мало"),
+        part("Что бывает с кожей",
+            "Трескается и шелушится в холод и на ветру",
+            "Легко краснеет и обгорает, бывают сыпь, воспаления, прыщи",
+            "Расширенные поры, чёрные точки, бывает отёчность"),
+    )
+
+    val skinAdultEn = listOf(
+        part("Dry or oily",
+            "Dry, often feels tight and flaky",
+            "Normal, but gets damp and shiny quickly in the heat",
+            "Thick, slightly oily, almost never dry"),
+        part("To the touch",
+            "Cool, especially hands and feet",
+            "Warm, sometimes hot",
+            "Cool and slightly moist"),
+        part("Thickness and colour",
+            "Thin, veins show through, fine lines appear early",
+            "Soft, pinkish, lots of moles or freckles",
+            "Thick, smooth, even-toned, few wrinkles"),
+        part("What happens to your skin",
+            "Cracks and flakes in cold and wind",
+            "Reddens and burns easily, rashes, inflammation, spots",
+            "Enlarged pores, blackheads, sometimes puffiness"),
+    )
+
+    val digestionAdultRu = listOf(
+        part("Стул",
+            "Нерегулярный, бывает раз в 2–3 дня, склонность к запорам",
+            "2–3 раза в день, бывает жидкий",
+            "Раз в день, регулярно, плотный"),
+        part("После еды",
+            "Вздутие, газы, урчание",
+            "Изжога, жжение, кислый привкус",
+            "Тяжесть, сонливость, тянет полежать"),
+        part("Скорость пищеварения",
+            "То быстро, то медленно — зависит от нервов и еды",
+            "Быстро: через 2–3 часа снова голоден",
+            "Медленно: сытость держится 4–5 часов и дольше"),
+    )
+
+    val digestionAdultEn = listOf(
+        part("Bowel movements",
+            "Irregular, sometimes once in 2–3 days, prone to constipation",
+            "2–3 times a day, sometimes loose",
+            "Once a day, regular, firm"),
+        part("After eating",
+            "Bloating, gas, rumbling",
+            "Heartburn, burning, sour taste",
+            "Heaviness, sleepiness, want to lie down"),
+        part("Speed of digestion",
+            "Sometimes fast, sometimes slow — depends on nerves and food",
+            "Fast: hungry again after 2–3 hours",
+            "Slow: I stay full for 4–5 hours or longer"),
+    )
+
+    val skinKidRu = listOf(
+        part("Сухость",
+            "Сухая, шершавая",
+            "Тёплая, бывает влажной",
+            "Мягкая, гладкая, чуть влажная"),
+        part("Цвет",
+            "Тусклая, бывают синячки под глазами",
+            "Розовая, быстро краснеет, бывают веснушки",
+            "Светлая и ровная"),
+        part("Что бывает с кожей",
+            "Трескается на холоде и ветру",
+            "Бывает сыпь или раздражение",
+            "Утром бывает припухшее личико"),
+    )
+
+    val skinKidEn = listOf(
+        part("Dryness",
+            "Dry and rough",
+            "Warm, sometimes damp",
+            "Soft, smooth, slightly moist"),
+        part("Colour",
+            "Dull, sometimes dark circles under the eyes",
+            "Pink, reddens quickly, sometimes freckles",
+            "Fair and even"),
+        part("What happens to your skin",
+            "Cracks in cold and wind",
+            "Sometimes a rash or irritation",
+            "Sometimes a puffy face in the morning"),
+    )
+
+    val tummyKidRu = listOf(
+        part("Туалет",
+            "«По-большому» хожу не каждый день",
+            "Хожу 2 раза в день и чаще, бывает жидкий",
+            "Хожу раз в день, без проблем"),
+        part("После еды",
+            "Часто пучит и урчит",
+            "Расстраивается от острого или жирного, бывает «жжёт»",
+            "Тяжело, хочется полежать"),
+        part("Когда болит животик",
+            "Когда я волнуюсь",
+            "Если долго не кушать",
+            "Почти никогда не болит"),
+    )
+
+    val tummyKidEn = listOf(
+        part("Going to the toilet",
+            "I don't poo every day",
+            "I poo twice a day or more, sometimes it's runny",
+            "Once a day, no problems"),
+        part("After eating",
+            "Often bloated and rumbly",
+            "Gets upset from spicy or greasy food, sometimes burns",
+            "Feels heavy, I want to lie down"),
+        part("When your tummy hurts",
+            "When I'm nervous",
+            "If I haven't eaten for a long time",
+            "It almost never hurts"),
+    )
+
     fun forQuestion(kid: Boolean, lang: Lang, index: Int): List<Question>? {
         val ru = lang == Lang.RU
         return when {
             kid && index == KID_SLEEP -> if (ru) sleepKidRu else sleepKidEn
             kid && index == KID_HAIR -> if (ru) hairKidRu else hairKidEn
+            kid && index == KID_SKIN -> if (ru) skinKidRu else skinKidEn
+            kid && index == KID_TUMMY -> if (ru) tummyKidRu else tummyKidEn
             !kid && index == ADULT_SLEEP -> if (ru) sleepAdultRu else sleepAdultEn
             !kid && index == ADULT_HAIR -> if (ru) hairAdultRu else hairAdultEn
+            !kid && index == ADULT_SKIN -> if (ru) skinAdultRu else skinAdultEn
+            !kid && index == ADULT_DIGESTION -> if (ru) digestionAdultRu else digestionAdultEn
             else -> null
         }
     }
