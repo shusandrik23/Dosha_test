@@ -5,13 +5,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import com.moyadosha.app.data.Dosha
 import com.moyadosha.app.data.DoshaResult
 import com.moyadosha.app.data.KID_MAX_AGE
 import com.moyadosha.app.data.Lang
 import com.moyadosha.app.data.Mix
 import com.moyadosha.app.data.Recommendations
+import com.moyadosha.app.data.SavedResult
 import com.moyadosha.app.data.Scoring
 import com.moyadosha.app.data.UiStrings
 import com.moyadosha.app.data.VikritiQuestions
@@ -21,7 +23,7 @@ import com.moyadosha.app.data.VikritiTexts
 import com.moyadosha.app.data.questionsFor
 import kotlin.random.Random
 
-enum class Screen { Welcome, Quiz, Result }
+enum class Screen { Welcome, Quiz, Result, History }
 
 /** PRAKRITI — врождённая доша, VIKRITI — баланс сейчас. */
 enum class TestMode { PRAKRITI, VIKRITI }
@@ -29,7 +31,7 @@ enum class TestMode { PRAKRITI, VIKRITI }
 /** Вопрос для экрана: текст и варианты, без привязки к типу теста. */
 data class QuizItem(val text: String, val options: List<String>)
 
-class QuizViewModel : ViewModel() {
+class QuizViewModel(app: Application) : AndroidViewModel(app) {
     /** Язык выбирается по языку системы: русский или английский. */
     val lang: Lang = Lang.system()
     val strings = UiStrings(lang)
@@ -64,6 +66,25 @@ class QuizViewModel : ViewModel() {
         private set
     var vikritiResult: VikritiResult? by mutableStateOf(null)
         private set
+
+    /** Чей результат на экране: только что пройденный тест или открытый из истории. */
+    var resultName by mutableStateOf("")
+        private set
+    var resultAge by mutableIntStateOf(0)
+        private set
+    var resultKid by mutableStateOf(false)
+        private set
+    var resultTimestamp by mutableStateOf(0L)
+        private set
+    /** id сохранённой записи для текущего результата (null — ещё не сохранён). */
+    var savedId: Long? by mutableStateOf(null)
+        private set
+    /** Результат открыт из истории — «назад» ведёт в историю. */
+    var fromHistory by mutableStateOf(false)
+        private set
+
+    private val store = HistoryStore(app)
+    val history = mutableStateListOf<SavedResult>().apply { addAll(store.load()) }
 
     fun start(newMode: TestMode = mode) {
         val a = age ?: return
@@ -101,6 +122,12 @@ class QuizViewModel : ViewModel() {
         } else {
             vikritiResult = VikritiScoring.score(vikritiDoshas.mapIndexed { i, opts -> opts[answers[i]!!] })
         }
+        resultName = name.trim()
+        resultAge = age ?: 0
+        resultKid = isKid
+        resultTimestamp = System.currentTimeMillis()
+        savedId = null
+        fromHistory = false
         screen = Screen.Result
     }
 
@@ -113,5 +140,48 @@ class QuizViewModel : ViewModel() {
 
     fun toWelcome() {
         screen = Screen.Welcome
+    }
+
+    fun saveCurrent() {
+        if (savedId != null) return
+        val item = if (mode == TestMode.VIKRITI) {
+            SavedResult.of(vikritiResult ?: return, resultName, resultAge, resultKid, resultTimestamp)
+        } else {
+            SavedResult.of(result ?: return, resultName, resultAge, resultKid, resultTimestamp)
+        }
+        history.add(0, item)
+        store.save(history)
+        savedId = item.id
+    }
+
+    fun openHistory() {
+        screen = Screen.History
+    }
+
+    fun openSaved(item: SavedResult) {
+        mode = if (item.vikriti) TestMode.VIKRITI else TestMode.PRAKRITI
+        result = if (item.vikriti) null else item.toDoshaResult()
+        vikritiResult = if (item.vikriti) item.toVikritiResult() else null
+        resultName = item.name
+        resultAge = item.age
+        resultKid = item.kid
+        resultTimestamp = item.timestamp
+        savedId = item.id
+        fromHistory = true
+        // чтобы с экрана результата можно было сразу пройти второй тест за этого человека
+        if (name.isBlank()) name = item.name
+        if (age == null) ageText = item.age.toString()
+        screen = Screen.Result
+    }
+
+    fun deleteSaved(item: SavedResult) {
+        history.removeAll { it.id == item.id }
+        store.save(history)
+        if (savedId == item.id) savedId = null
+    }
+
+    /** «Назад» с экрана результата. */
+    fun leaveResult() {
+        screen = if (fromHistory) Screen.History else Screen.Welcome
     }
 }

@@ -74,6 +74,22 @@ Why know this:
 The "My nature" test finds the dosha you were born with; the "My balance now" test shows what has gone out of balance in recent weeks.""",
     )
 
+
+    val save = t("Сохранить результат", "Save result")
+    val saved = t("✓ Сохранено", "✓ Saved")
+    fun myResults(n: Int) = t("📂 Мои результаты ($n)", "📂 My results ($n)")
+    val historyTitle = t("Мои результаты", "My results")
+    val historyEmpty = t("Здесь появятся сохранённые результаты.", "Saved results will appear here.")
+    val delete = t("Удалить", "Delete")
+    val deleteTitle = t("Удалить результат?", "Delete this result?")
+    val cancel = t("Отмена", "Cancel")
+    fun takenOn(date: String) = t("Пройден: $date", "Taken: $date")
+    fun formatDate(ts: Long): String =
+        java.text.DateFormat.getDateTimeInstance(
+            java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT,
+            if (ru) java.util.Locale("ru") else java.util.Locale.ENGLISH,
+        ).format(java.util.Date(ts))
+
     fun questionOf(i: Int, n: Int) = t("Вопрос $i из $n", "Question $i of $n")
     val kidBadge = t("🧸 детский", "🧸 kids")
     val back = t("Назад", "Back")

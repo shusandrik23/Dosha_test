@@ -37,6 +37,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -81,6 +82,7 @@ import com.moyadosha.app.data.Dosha
 import com.moyadosha.app.data.DoshaResult
 import com.moyadosha.app.data.Lang
 import com.moyadosha.app.data.TEST_LENGTHS
+import com.moyadosha.app.data.SavedResult
 import com.moyadosha.app.data.ShareText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -99,6 +101,7 @@ fun DoshaApp(vm: QuizViewModel, onShare: (String) -> Unit) {
                     when (screen) {
                         Screen.Welcome -> WelcomeScreen(vm)
                         Screen.Quiz -> QuizScreen(vm)
+                        Screen.History -> HistoryScreen(vm)
                         Screen.Result -> if (vm.mode == TestMode.VIKRITI) VikritiResultScreen(vm, onShare) else ResultScreen(vm, onShare)
                     }
                 }
@@ -236,6 +239,14 @@ private fun WelcomeScreen(vm: QuizViewModel) {
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
             ) { Text(s.start, fontSize = 17.sp) }
+            if (vm.history.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { vm.openHistory() },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) { Text(s.myResults(vm.history.size)) }
+            }
         }
 
         Spacer(Modifier.height(20.dp))
@@ -418,9 +429,9 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
     val s = vm.strings
     val rec = vm.recommendations
     val lang = vm.lang
-    val kid = vm.isKid
-    val age = vm.age ?: 0
-    BackHandler { vm.toWelcome() }
+    val kid = vm.resultKid
+    val age = vm.resultAge
+    BackHandler { vm.leaveResult() }
 
     Column(
         Modifier
@@ -428,7 +439,8 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 20.dp),
     ) {
-        ResultHeader(vm.name.trim(), s.yourDosha(kid), lang, r)
+        ResultHeader(vm.resultName, s.yourDosha(kid), lang, r)
+        TakenOn(vm)
         Spacer(Modifier.height(16.dp))
 
         SoftCard {
@@ -462,7 +474,7 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
 
         Spacer(Modifier.height(8.dp))
         Button(
-            onClick = { onShare(ShareText.build(vm.name, age, kid, r, lang)) },
+            onClick = { onShare(ShareText.build(vm.resultName, age, kid, r, lang)) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
         ) {
@@ -470,6 +482,8 @@ private fun ResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
             Spacer(Modifier.width(8.dp))
             Text(s.share, fontSize = 17.sp)
         }
+        Spacer(Modifier.height(10.dp))
+        SaveButton(vm)
         Spacer(Modifier.height(10.dp))
         OutlinedButton(
             onClick = { vm.start(TestMode.VIKRITI) },
@@ -695,9 +709,9 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
     val v = vm.vtexts
     val s = vm.strings
     val lang = vm.lang
-    val kid = vm.isKid
-    val age = vm.age ?: 0
-    BackHandler { vm.toWelcome() }
+    val kid = vm.resultKid
+    val age = vm.resultAge
+    BackHandler { vm.leaveResult() }
 
     Column(
         Modifier
@@ -716,7 +730,7 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
                 .padding(24.dp),
         ) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                val name = vm.name.trim()
+                val name = vm.resultName
                 Text(
                     (if (name.isEmpty()) "" else "$name, ") + v.header(kid),
                     color = Color.White,
@@ -729,6 +743,7 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
                 Text(v.title(r), color = Color.White, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
             }
         }
+        TakenOn(vm)
         Spacer(Modifier.height(16.dp))
 
         SoftCard {
@@ -761,7 +776,7 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
 
         Spacer(Modifier.height(8.dp))
         Button(
-            onClick = { onShare(v.shareText(vm.name, age, kid, r)) },
+            onClick = { onShare(v.shareText(vm.resultName, age, kid, r)) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
         ) {
@@ -769,6 +784,8 @@ private fun VikritiResultScreen(vm: QuizViewModel, onShare: (String) -> Unit) {
             Spacer(Modifier.width(8.dp))
             Text(s.share, fontSize = 17.sp)
         }
+        Spacer(Modifier.height(10.dp))
+        SaveButton(vm)
         Spacer(Modifier.height(10.dp))
         OutlinedButton(
             onClick = { vm.start(TestMode.PRAKRITI) },
@@ -849,6 +866,133 @@ private fun AboutCard(title: String, text: String) {
         }
         AnimatedVisibility(visible = expanded) {
             Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp))
+        }
+    }
+}
+
+
+@Composable
+private fun TakenOn(vm: QuizViewModel) {
+    if (vm.resultTimestamp == 0L) return
+    Spacer(Modifier.height(8.dp))
+    Text(
+        vm.strings.takenOn(vm.strings.formatDate(vm.resultTimestamp)),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun SaveButton(vm: QuizViewModel) {
+    val saved = vm.savedId != null
+    OutlinedButton(
+        onClick = { vm.saveCurrent() },
+        enabled = !saved,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(14.dp),
+    ) { Text(if (saved) vm.strings.saved else "💾 " + vm.strings.save) }
+}
+
+// ---------- Мои результаты ----------
+
+@Composable
+private fun HistoryScreen(vm: QuizViewModel) {
+    val s = vm.strings
+    var toDelete by remember { mutableStateOf<SavedResult?>(null) }
+    BackHandler { vm.toWelcome() }
+
+    toDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { toDelete = null },
+            title = { Text(s.deleteTitle) },
+            text = { Text("${item.name} · ${s.formatDate(item.timestamp)}") },
+            confirmButton = { TextButton(onClick = { vm.deleteSaved(item); toDelete = null }) { Text(s.delete) } },
+            dismissButton = { TextButton(onClick = { toDelete = null }) { Text(s.cancel) } },
+        )
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { vm.toWelcome() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s.back)
+            }
+            Text(s.historyTitle, style = MaterialTheme.typography.titleLarge)
+        }
+        if (vm.history.isEmpty()) {
+            Text(
+                s.historyEmpty,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(20.dp),
+            )
+        }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            vm.history.forEach { item ->
+                HistoryItem(vm, item, onDelete = { toDelete = item })
+                Spacer(Modifier.height(10.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryItem(vm: QuizViewModel, item: SavedResult, onDelete: () -> Unit) {
+    val s = vm.strings
+    val v = vm.vtexts
+    val lang = vm.lang
+    val title: String
+    val emoji: String
+    val line: String
+    if (item.vikriti) {
+        val r = item.toVikritiResult()
+        title = v.title(r)
+        emoji = if (r.balanced) "☯️" else r.leading.joinToString("") { it.emoji }
+        line = "${v.norm} ${r.percents.getValue(null)}% · " +
+            Dosha.entries.joinToString(" · ") { "${it.title(lang)} ${r.percents.getValue(it)}%" }
+    } else {
+        val r = item.toDoshaResult()
+        title = r.typeName(lang)
+        emoji = r.emoji
+        line = Dosha.entries.joinToString(" · ") { "${it.title(lang)} ${r.percent.getValue(it)}%" }
+    }
+    val accent = if (item.leading.isEmpty()) BalanceGreen else item.leading.first().color()
+    Card(
+        onClick = { vm.openSaved(item) },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(emoji, fontSize = 26.sp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (item.vikriti) v.vikritiTitle else v.prakritiTitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${item.name}, ${item.age} ${s.years(item.age)} · ${s.formatDate(item.timestamp)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(line, style = MaterialTheme.typography.bodyMedium)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = s.delete)
+            }
         }
     }
 }
